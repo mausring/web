@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>mausring — a mouse ring</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+  <style>
+    /* ─── LIGHT MODE (default) ─────────────────────────────── */
+    :root {
+      --bg:             #ffffff;
+      --bg2:            #f7f7f7;
+      --panel:          #f0f0f0;
+      --border:         #d4d4d4;
+      --border-strong:  #000000;
+      --text:           #111111;
+      --mid:            #444444;
+      --dim:            #888888;
+      --inv-bg:         #000000;
+      --inv-text:       #ffffff;
+      --pcb-line:       rgba(0,0,0,0.055);
+      --pcb-dot:        rgba(0,0,0,0.12);
+      --nav-scrolled:   rgba(255,255,255,0.92);
+      --cursor-color:   #000000;
+      --marquee-text:   #d8d8d8;
+      --marquee-b:      #b8b8b8;
+      --scroll-line:    linear-gradient(to bottom, #000, transparent);
+      --serif: "Anthropic Serif", Georgia, "Arial Hebrew", "Noto Sans Hebrew",
+               "Times New Roman", Times, "Hiragino Sans", "Yu Gothic", Meiryo,
+               "Noto Sans CJK JP", "PingFang TC", "Microsoft JhengHei",
+               "Noto Sans CJK TC", "PingFang SC", "Microsoft YaHei",
+               "Noto Sans CJK SC", "Apple SD Gothic Neo", "Malgun Gothic",
+               "Noto Sans CJK KR", serif;
+      --mono: 'Courier Prime', 'Courier New', Courier, monospace;
+    }
+
+    /* ─── DARK MODE ────────────────────────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:             #0d0e10;
+        --bg2:            #111316;
+        --panel:          #191c22;
+        --border:         #2a2e38;
+        --border-strong:  #ffffff;
+        --text:           #e8eaf0;
+        --mid:            #a0a8b8;
+        --dim:            #5a6070;
+        --inv-bg:         #ffffff;
+        --inv-text:       #000000;
+        --pcb-line:       rgba(255,255,255,0.045);
+        --pcb-dot:        rgba(255,255,255,0.10);
+        --nav-scrolled:   rgba(13,14,16,0.92);
+        --cursor-color:   #ffffff;
+        --marquee-text:   #2a2e38;
+        --marquee-b:      #3a3e4a;
+        --scroll-line:    linear-gradient(to bottom, #fff, transparent);
+      }
+    }
+
+    /* ─── RESET ────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--serif);
+      font-size: 17px;
+      line-height: 1.75;
+      overflow-x: hidden;
+      cursor: crosshair;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ─── CUSTOM CURSOR ────────────────────────────────────── */
+    #cursor-dot {
+      width: 5px; height: 5px;
+      background: var(--cursor-color);
+      border-radius: 50%;
+      position: fixed; pointer-events: none; z-index: 9999;
+      transform: translate(-50%,-50%);
+    }
+    #cursor-ring {
+      width: 26px; height: 26px;
+      border: 1px solid var(--cursor-color);
+      border-radius: 50%;
+      position: fixed; pointer-events: none; z-index: 9998;
+      transform: translate(-50%,-50%); opacity: 0.35;
+    }
+
+    /* ─── PCB GRID BACKGROUND ──────────────────────────────── */
+    .pcb-grid {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(var(--pcb-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--pcb-line) 1px, transparent 1px),
+        radial-gradient(circle, var(--pcb-dot) 1px, transparent 1px);
+      background-size: 40px 40px, 40px 40px, 40px 40px;
+      background-position: 0 0, 0 0, 20px 20px;
+      mask-image: radial-gradient(ellipse 85% 85% at 50% 40%, black 30%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 85% 85% at 50% 40%, black 30%, transparent 100%);
+    }
+
+    /* ─── NAV ──────────────────────────────────────────────── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.1rem 3rem;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    nav.scrolled {
+      background: var(--nav-scrolled);
+      border-color: var(--border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .nav-logo {
+      font-family: var(--serif); font-style: italic;
+      font-size: 1.1rem; color: var(--text);
+    }
+    .nav-logo sub {
+      font-style: normal; font-size: 0.62rem; color: var(--dim);
+      font-family: var(--mono); letter-spacing: 0.08em;
+      vertical-align: baseline; margin-left: 0.4rem;
+    }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
+    .nav-links a {
+      font-family: var(--mono); font-size: 0.7rem; color: var(--dim);
+      text-decoration: none; letter-spacing: 0.1em; text-transform: uppercase;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ─── SECTIONS ─────────────────────────────────────────── */
+    section { position: relative; z-index: 1; }
+
+    /* ─── HERO ─────────────────────────────────────────────── */
+    #hero {
+      min-height: 100vh; display: grid; place-items: center;
+      text-align: center; padding: 7rem 2rem 5rem; overflow: hidden;
+    }
+    .hero-ring {
+      position: absolute; border-radius: 50%;
+      border: 1px solid var(--text);
+      pointer-events: none; left: 50%; top: 50%;
+      transform: translate(-50%,-50%);
+    }
+    .hero-ring-1 { width: 360px; height: 360px; opacity: 0.10; }
+    .hero-ring-2 { width: 560px; height: 560px; opacity: 0.06; }
+    .hero-ring-3 { width: 800px; height: 800px; opacity: 0.03; }
+
+    .hero-content { position: relative; z-index: 2; }
+
+    .hero-eyebrow {
+      font-family: var(--mono); font-size: 0.67rem; letter-spacing: 0.28em;
+      text-transform: uppercase; color: var(--dim); margin-bottom: 1.8rem;
+    }
+    .hero-title {
+      font-family: var(--serif); font-style: italic;
+      font-size: clamp(4.5rem, 13vw, 11rem);
+      line-height: 0.92; color: var(--text); letter-spacing: -0.02em;
+    }
+    .hero-title .upright { font-style: normal; }
+    .hero-desc {
+      font-family: var(--serif); font-style: italic;
+      font-size: 1.1rem; color: var(--mid);
+      max-width: 42ch; margin: 1.6rem auto 0;
+    }
+    .hero-cta {
+      margin-top: 2.8rem; display: flex; gap: 1rem;
+      justify-content: center; flex-wrap: wrap;
+    }
+
+    /* GSAP will handle opacity:0 initial state via JS — no CSS opacity:0 here */
+
+    .btn {
+      font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.14em;
+      text-transform: uppercase; padding: 0.75rem 1.8rem;
+      border: 1px solid; text-decoration: none;
+      transition: background 0.18s, color 0.18s, border-color 0.18s;
+      cursor: pointer; display: inline-block;
+    }
+    .btn-solid   { border-color: var(--text); background: var(--text); color: var(--bg); }
+    .btn-solid:hover  { background: transparent; color: var(--text); }
+    .btn-outline { border-color: var(--border); color: var(--dim); background: transparent; }
+    .btn-outline:hover { border-color: var(--text); color: var(--text); }
+
+    .scroll-hint {
+      position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.22em;
+      color: var(--dim); text-transform: uppercase;
+    }
+    .scroll-line {
+      width: 1px; height: 36px;
+      background: var(--scroll-line);
+      animation: linefall 1.8s ease-in-out infinite;
+    }
+    @keyframes linefall {
+      0%,100% { opacity: 0.2; transform: scaleY(0.8); }
+      50%      { opacity: 0.7; transform: scaleY(1); }
+    }
+
+    /* ─── SHARED LAYOUT ────────────────────────────────────── */
+    .section-inner { max-width: 1080px; margin: 0 auto; padding: 0 2.5rem; }
+
+    .section-label {
+      font-family: var(--mono); font-size: 0.63rem; letter-spacing: 0.28em;
+      text-transform: uppercase; color: var(--dim); margin-bottom: 0.9rem;
+      display: block;
+    }
+    .section-label::before { content: '§ '; }
+
+    h2.section-title {
+      font-family: var(--serif); font-style: italic;
+      font-size: clamp(2.8rem, 5.5vw, 5rem);
+      line-height: 0.96; color: var(--text); letter-spacing: -0.015em; margin-bottom: 3.5rem;
+    }
+
+    /* ─── MANIFESTO ────────────────────────────────────────── */
+    #manifesto { padding: 9rem 0; border-top: 1px solid var(--border); }
+    .manifesto-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 5rem; align-items: center;
+    }
+    @media (max-width: 720px) { .manifesto-grid { grid-template-columns: 1fr; gap: 3rem; } }
+    .manifesto-text p { font-size: 1.05rem; color: var(--mid); margin-bottom: 1.1rem; }
+    .manifesto-text em { font-style: italic; color: var(--text); }
+    .ring-diagram svg { width: 100%; max-width: 280px; display: block; margin: 0 auto; overflow: visible; }
+
+    /* ─── MARQUEE ───────────────────────────────────────────── */
+    .marquee-wrap {
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 1.4rem 0; overflow: hidden;
+    }
+    .marquee-track {
+      display: flex; gap: 3rem; white-space: nowrap;
+      font-family: var(--serif); font-style: italic; font-size: 2.8rem;
+      color: var(--marquee-text);
+      animation: marquee 26s linear infinite; will-change: transform;
+    }
+    .marquee-track b { color: var(--marquee-b); font-weight: 400; }
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    /* ─── HARDWARE ──────────────────────────────────────────── */
+    #hardware { padding: 9rem 0; border-top: 1px solid var(--border); background: var(--bg2); }
+    .chips-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      border: 1px solid var(--border-strong);
+    }
+    .chip-card {
+      padding: 2rem 1.8rem; background: var(--bg);
+      border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden; transition: background 0.2s;
+    }
+    .chip-card:hover { background: var(--panel); }
+    .chip-card::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+      height: 2px; background: var(--text);
+      transform: scaleX(0); transform-origin: left; transition: transform 0.35s ease;
+    }
+    .chip-card:hover::after { transform: scaleX(1); }
+    .chip-num {
+      font-family: var(--mono); font-size: 0.6rem; color: var(--dim);
+      letter-spacing: 0.18em; margin-bottom: 0.5rem;
+    }
+    .chip-name {
+      font-family: var(--mono); font-size: 0.88rem; font-weight: 700;
+      color: var(--text); margin-bottom: 0.7rem;
+    }
+    .chip-desc { font-size: 0.87rem; color: var(--mid); line-height: 1.6; }
+    .chip-tag {
+      display: inline-block; margin-top: 1.1rem;
+      font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.12em;
+      border: 1px solid var(--text); padding: 0.18rem 0.55rem; color: var(--text);
+    }
+
+    /* ─── SOFTWARE ──────────────────────────────────────────── */
+    #software { padding: 9rem 0; border-top: 1px solid var(--border); }
+    .sw-layout {
+      display: grid; grid-template-columns: 1fr 1.3fr;
+      gap: 4rem; align-items: start;
+    }
+    @media (max-width: 720px) { .sw-layout { grid-template-columns: 1fr; gap: 2.5rem; } }
+
+    .sw-stack { display: flex; flex-direction: column; }
+    .sw-item {
+      display: flex; align-items: flex-start; gap: 1rem;
+      padding: 1.2rem 0; border-bottom: 1px solid var(--border);
+      transition: padding-left 0.2s;
+    }
+    .sw-item:first-child { border-top: 1px solid var(--border); }
+    .sw-item:hover { padding-left: 0.5rem; }
+    .sw-dash { font-family: var(--mono); font-size: 0.8rem; color: var(--dim); flex-shrink: 0; padding-top: 0.1rem; }
+    .sw-name { font-family: var(--mono); font-size: 0.82rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; }
+    .sw-desc { font-size: 0.83rem; color: var(--dim); }
+
+    /* terminal */
+    .terminal { border: 1px solid var(--border-strong); overflow: hidden; }
+    .terminal-bar {
+      background: var(--panel); border-bottom: 1px solid var(--border);
+      padding: 0.55rem 1rem; display: flex; align-items: center; gap: 0.45rem;
+    }
+    .t-btn { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--border); background: var(--panel); }
+    .terminal-label { font-family: var(--mono); font-size: 0.62rem; color: var(--dim); margin-left: 0.4rem; letter-spacing: 0.08em; }
+    .terminal-body {
+      padding: 1.4rem 1.6rem; font-family: var(--mono); font-size: 0.78rem;
+      line-height: 2; color: var(--mid); background: var(--bg);
+    }
+    .t-ok    { color: var(--text); font-weight: 700; }
+    .t-warn  { color: var(--mid); }
+    .t-muted { color: var(--dim); }
+    .t-cursor {
+      display: inline-block; width: 6px; height: 0.95em;
+      background: var(--text); vertical-align: text-bottom; margin-left: 1px;
+      animation: blink 1.1s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ─── POWER ─────────────────────────────────────────────── */
+    #power { padding: 9rem 0; border-top: 1px solid var(--border); background: var(--bg2); }
+    .power-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
+    .power-card { border: 1px solid var(--border); padding: 1.8rem 1.6rem; background: var(--bg); }
+    .power-card.highlight { border-color: var(--text); }
+    .power-status {
+      font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.2em;
+      color: var(--dim); text-transform: uppercase; margin-bottom: 0.7rem;
+    }
+    .power-card.highlight .power-status { color: var(--text); }
+    .power-title { font-family: var(--serif); font-style: italic; font-size: 1.35rem; color: var(--text); line-height: 1.2; margin-bottom: 0.8rem; }
+    .power-desc { font-size: 0.84rem; color: var(--mid); line-height: 1.6; }
+
+    /* ─── TODO ──────────────────────────────────────────────── */
+    #todo { padding: 9rem 0; border-top: 1px solid var(--border); }
+    .todo-item {
+      display: flex; gap: 1.2rem; align-items: flex-start;
+      padding: 1.3rem 0; border-bottom: 1px solid var(--border);
+    }
+    .todo-item:first-child { border-top: 1px solid var(--border); }
+    .todo-box { width: 14px; height: 14px; border: 1px solid var(--dim); flex-shrink: 0; margin-top: 4px; }
+    .todo-label { font-family: var(--serif); font-size: 1rem; color: var(--text); margin-bottom: 0.2rem; }
+    .todo-note { font-size: 0.83rem; color: var(--dim); }
+
+    /* ─── FOOTER ────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--text); padding: 2.5rem 3rem;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 1rem; position: relative; z-index: 1;
+    }
+    .footer-sig { font-family: var(--serif); font-style: italic; font-size: 0.9rem; color: var(--dim); }
+    .footer-sig strong { font-style: normal; color: var(--text); font-weight: 400; }
+    .footer-links { display: flex; gap: 1.8rem; }
+    .footer-links a {
+      font-family: var(--mono); font-size: 0.68rem; color: var(--dim);
+      text-decoration: none; letter-spacing: 0.08em; transition: color 0.15s;
+    }
+    .footer-links a:hover { color: var(--text); }
+
+    /* SVG diagram theming via CSS */
+    .diagram-inner-fill  { fill: var(--bg2); }
+    .diagram-hole-fill   { fill: var(--bg); }
+    .diagram-ring-stroke { stroke: var(--text); }
+    .diagram-label-muted { fill: var(--dim); }
+
+    .parallax-el { will-change: transform; }
+  </style>
+</head>
+<body>
+
+  <div id="cursor-dot"></div>
+  <div id="cursor-ring"></div>
+  <div class="pcb-grid"></div>
+
+  <!-- NAV -->
+  <nav id="main-nav">
+    <div class="nav-logo">mausring <sub>v0.1-wip</sub></div>
+    <ul class="nav-links">
+      <li><a href="#manifesto">why</a></li>
+      <li><a href="#hardware">hardware</a></li>
+      <li><a href="#software">software</a></li>
+      <li><a href="#power">power</a></li>
+      <li><a href="https://github.com/vstkl/mausring" target="_blank">github ↗</a></li>
+    </ul>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-ring hero-ring-3 parallax-el" data-speed="-0.07"></div>
+    <div class="hero-ring hero-ring-2 parallax-el" data-speed="-0.13"></div>
+    <div class="hero-ring hero-ring-1 parallax-el" data-speed="-0.20"></div>
+
+    <div class="hero-content">
+      <p class="hero-eyebrow" id="h-eye">open hardware project</p>
+      <h1 class="hero-title" id="h-title">Maus<span class="upright">ring</span></h1>
+      <p class="hero-desc" id="h-desc">A mouse you wear on your finger.<br>Born from laziness, built with RISC-V.</p>
+      <div class="hero-cta" id="h-cta">
+        <a href="#manifesto" class="btn btn-solid">read the story</a>
+        <a href="https://github.com/vstkl/mausring" target="_blank" class="btn btn-outline">github ↗</a>
+      </div>
+    </div>
+
+    <div class="scroll-hint" id="h-scroll">
+      <span>scroll</span>
+      <div class="scroll-line"></div>
+    </div>
+  </section>
+
+  <!-- MANIFESTO -->
+  <section id="manifesto">
+    <div class="section-inner">
+      <span class="section-label">origin</span>
+      <h2 class="section-title">Born from<br>coffee &amp; laziness.</h2>
+      <div class="manifesto-grid">
+        <div class="manifesto-text">
+          <p>I got tired of putting my hand back on the touchpad every time I needed to turn a page — <em>while my hands were doing something more important, like holding coffee.</em></p>
+          <p>So instead of accepting that reality, I decided to build a mouse you wear on your finger. A ring with an outer rotary band for scrolling, an IMU for pointer movement, and enough stubbornness to make it real.</p>
+          <p>This is FOSS hardware. If it ever reaches production, profit isn't the point. The point is that <em>a thing like this should exist</em> and currently doesn't.</p>
+        </div>
+        <div class="ring-diagram">
+          <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+            <!-- outer rotary ring glow area -->
+            <circle cx="140" cy="140" r="122" fill="none" stroke="currentColor" stroke-width="20" opacity="0.06"/>
+            <!-- outer dashed ring (spins via GSAP) -->
+            <circle cx="140" cy="140" r="122" fill="none" stroke="currentColor" stroke-width="1"
+              stroke-dasharray="5 4" opacity="0.3" id="outer-dash"/>
+            <!-- inner ring body -->
+            <circle cx="140" cy="140" r="90" class="diagram-inner-fill" stroke="currentColor" stroke-width="1" opacity="0.8"/>
+            <!-- finger hole -->
+            <circle cx="140" cy="140" r="55" class="diagram-hole-fill" stroke="currentColor" stroke-width="0.5" opacity="0.3"/>
+            <!-- chip: ESP32 -->
+            <rect x="112" y="106" width="56" height="14" rx="1" fill="currentColor" opacity="0.85"/>
+            <text x="140" y="117.5" text-anchor="middle" fill="var(--bg)" font-family="Courier Prime, monospace" font-size="7" font-weight="bold">ESP32-C3</text>
+            <!-- chip: IMU -->
+            <rect x="110" y="126" width="26" height="11" rx="1" fill="currentColor" opacity="0.55"/>
+            <text x="123" y="135" text-anchor="middle" fill="var(--bg)" font-family="Courier Prime, monospace" font-size="6.5">IMU</text>
+            <!-- chip: HR -->
+            <rect x="142" y="126" width="28" height="11" rx="1" fill="currentColor" opacity="0.38"/>
+            <text x="156" y="135" text-anchor="middle" fill="var(--bg)" font-family="Courier Prime, monospace" font-size="6.5">HR</text>
+            <!-- battery -->
+            <rect x="116" y="143" width="48" height="11" rx="1" fill="currentColor" opacity="0.18"/>
+            <text x="140" y="152" text-anchor="middle" fill="currentColor" opacity="0.5" font-family="Courier Prime, monospace" font-size="6">BATTERY · TBD</text>
+            <!-- Hall sensor -->
+            <circle cx="140" cy="20" r="4" fill="currentColor" opacity="0.7"/>
+            <line x1="140" y1="24" x2="140" y2="50" stroke="currentColor" stroke-width="0.5" stroke-dasharray="2 2" opacity="0.3"/>
+            <!-- labels -->
+            <text x="140" y="238" text-anchor="middle" class="diagram-label-muted" font-family="Courier Prime, monospace" font-size="7.5">inner — mcu + imu</text>
+            <text x="140" y="11" text-anchor="middle" class="diagram-label-muted" font-family="Courier Prime, monospace" font-size="7">hall sensor</text>
+            <!-- spin arrow -->
+            <path d="M 52 105 A 98 98 0 0 1 228 105" fill="none" stroke="currentColor" stroke-width="0.8"
+              stroke-dasharray="3 4" opacity="0.2" marker-end="url(#arr)"/>
+            <defs>
+              <marker id="arr" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+                <path d="M0,0 L5,2.5 L0,5 Z" fill="currentColor" opacity="0.3"/>
+              </marker>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE -->
+  <div class="marquee-wrap">
+    <div class="marquee-track">
+      <b>ESP32-C3</b> · ICM20948 · FreeRTOS · EasyEDA · OpenSCAD · <b>RISC-V</b> · BLE HID · LiFePO · MAX30102 · FlexPCB · JupyterSCAD · SolidPython ·&nbsp;
+      <b>ESP32-C3</b> · ICM20948 · FreeRTOS · EasyEDA · OpenSCAD · <b>RISC-V</b> · BLE HID · LiFePO · MAX30102 · FlexPCB · JupyterSCAD · SolidPython ·&nbsp;
+    </div>
+  </div>
+
+  <!-- HARDWARE -->
+  <section id="hardware">
+    <div class="section-inner">
+      <span class="section-label">silicon</span>
+      <h2 class="section-title">The hardware<br>inside the ring.</h2>
+      <div class="chips-grid">
+        <div class="chip-card">
+          <div class="chip-num">01 · brain</div>
+          <div class="chip-name">ESP32-C3FH4 / ESP8684-H2</div>
+          <div class="chip-desc">RISC-V core chosen as much for ideology as size. Fits the critically small inner ring, handles BLE HID, runs FreeRTOS. Possibly the smallest ESP32 you'll ever wear.</div>
+          <div class="chip-tag">RISC-V · BLE</div>
+        </div>
+        <div class="chip-card">
+          <div class="chip-num">02 · motion</div>
+          <div class="chip-name">ICM-20948</div>
+          <div class="chip-desc">9-DoF IMU — accelerometer, gyroscope, magnetometer in one small package. Replaced BMA423 + LSM303 combo. Excellent docs, dev board available for firmware testing.</div>
+          <div class="chip-tag">9-DOF · SPI · I2C</div>
+        </div>
+        <div class="chip-card">
+          <div class="chip-num">03 · biometrics</div>
+          <div class="chip-name">MAX30102</div>
+          <div class="chip-desc">Pulse oximeter and heart-rate sensor. Optional — user-toggleable for privacy and battery conservation. Your biometric data belongs to you, not anyone else.</div>
+          <div class="chip-tag">OPT-IN · HR</div>
+        </div>
+        <div class="chip-card">
+          <div class="chip-num">04 · scroll</div>
+          <div class="chip-name">Rotary Outer Ring + Hall Sensor</div>
+          <div class="chip-desc">The outer ring spins mechanically. A Hall sensor reads magnetic pulses to detect direction and velocity. Same rotation may eventually contribute to inductive charging.</div>
+          <div class="chip-tag">HALL · SCROLL</div>
+        </div>
+        <div class="chip-card">
+          <div class="chip-num">05 · form</div>
+          <div class="chip-name">FlexPCB + OpenSCAD Body</div>
+          <div class="chip-desc">Designed for FlexPCB in EasyEDA Pro. 3D body via Jupyter + SolidPython + JupyterSCAD. RX/TX probes exposed. Built to be tinkered with.</div>
+          <div class="chip-tag">FLEXPCB · FOSS</div>
+        </div>
+        <div class="chip-card">
+          <div class="chip-num">06 · power</div>
+          <div class="chip-name">Battery — TBD</div>
+          <div class="chip-desc">Small LiFePO cell (~22mAh, informed by Oura Ring research). Thermoelectric and rotational inductive charging are ideas on the table. Nothing is settled yet.</div>
+          <div class="chip-tag">TBD · LIFEPO</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOFTWARE -->
+  <section id="software">
+    <div class="section-inner">
+      <span class="section-label">firmware</span>
+      <h2 class="section-title">Software stack.</h2>
+      <div class="sw-layout">
+        <div class="sw-stack">
+          <div class="sw-item">
+            <span class="sw-dash">—</span>
+            <div>
+              <div class="sw-name">Arduino IDE + ICM20948_WE</div>
+              <div class="sw-desc">Working base. SPI abstraction by wollewald. Comfortable enough to iterate fast.</div>
+            </div>
+          </div>
+          <div class="sw-item">
+            <span class="sw-dash">—</span>
+            <div>
+              <div class="sw-name">FreeRTOS tasks</div>
+              <div class="sw-desc">Separate tasks for comms, IMU data, status LED. Event-driven, threshold-triggered BLE sends.</div>
+            </div>
+          </div>
+          <div class="sw-item">
+            <span class="sw-dash">—</span>
+            <div>
+              <div class="sw-name">Gamepad → Mouse HID</div>
+              <div class="sw-desc">IMU 3D data projected to 2D, routed through BLE HID compatibility layer to mouse events.</div>
+            </div>
+          </div>
+          <div class="sw-item">
+            <span class="sw-dash">—</span>
+            <div>
+              <div class="sw-name">JupyterSCAD + SolidPython</div>
+              <div class="sw-desc">Parametric 3D ring design in a Jupyter notebook. Unusual. Effective.</div>
+            </div>
+          </div>
+          <div class="sw-item">
+            <span class="sw-dash">—</span>
+            <div>
+              <div class="sw-name">EasyEDA Pro</div>
+              <div class="sw-desc">Schematic and PCB layout. M5Stack H2 gateway + CoreS3 used as reference schematics.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="terminal">
+          <div class="terminal-bar">
+            <div class="t-btn"></div><div class="t-btn"></div><div class="t-btn"></div>
+            <span class="terminal-label">fw_status.log</span>
+          </div>
+          <div class="terminal-body">
+<span class="t-muted">[ BOOT ]</span> FreeRTOS kernel init<br>
+<span class="t-ok">  ✓</span> task_imu         <span class="t-muted">// running</span><br>
+<span class="t-ok">  ✓</span> task_ble_comms   <span class="t-muted">// running</span><br>
+<span class="t-ok">  ✓</span> task_status_led  <span class="t-muted">// blinking</span><br>
+<span class="t-warn">  !</span> task_init        <span class="t-muted">// TODO: separate</span><br>
+<br>
+<span class="t-muted">[ IMU ]</span> ICM20948 via SPI<br>
+<span class="t-ok">  ✓</span> accel_raw        <span class="t-muted">// ±2g</span><br>
+<span class="t-ok">  ✓</span> gyro_raw         <span class="t-muted">// ±250dps</span><br>
+<span class="t-warn">  →</span> 3D→2D projection <span class="t-muted">// in progress</span><br>
+<br>
+<span class="t-muted">[ BLE ]</span> HID profile<br>
+<span class="t-ok">  ✓</span> gamepad x/y      <span class="t-muted">// mapped</span><br>
+<span class="t-warn">  →</span> mouse HID        <span class="t-muted">// next step</span><br>
+<span class="t-warn">  →</span> threshold events <span class="t-muted">// TODO</span><br>
+<br>
+<span class="t-muted">[ SYS ]</span> RX/TX probes exposed<br>
+<span class="t-ok">  ✓</span> hackable by design<br>
+<br>_<span class="t-cursor"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- POWER -->
+  <section id="power">
+    <div class="section-inner">
+      <span class="section-label">energy</span>
+      <h2 class="section-title">Power:<br>still figuring it out.</h2>
+      <div class="power-grid">
+        <div class="power-card">
+          <div class="power-status">Status — baseline</div>
+          <div class="power-title">LiFePO Cell ~22mAh</div>
+          <div class="power-desc">The boring answer. A tiny lithium iron phosphate cell similar to what Oura Ring uses. Safe, predictable, fits. The floor we build on.</div>
+        </div>
+        <div class="power-card highlight">
+          <div class="power-status">Status — TBD</div>
+          <div class="power-title">Thermoelectric Charging</div>
+          <div class="power-desc">Body heat differential → Peltier → trickle charge. Seductive idea. Efficiency probably terrible. Worth exploring anyway.</div>
+        </div>
+        <div class="power-card highlight">
+          <div class="power-status">Status — TBD</div>
+          <div class="power-title">Rotational Induction</div>
+          <div class="power-desc">The outer ring rotation drives the Hall sensor. Same magnetic pulses could power inductive charge cycles. Dual-purpose elegance — feasibility TBD.</div>
+        </div>
+        <div class="power-card">
+          <div class="power-status">Status — planned</div>
+          <div class="power-title">Biometric Opt-In</div>
+          <div class="power-desc">MAX30102 can be toggled off. Less current draw when disabled, your HR data stays yours when enabled.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TODO -->
+  <section id="todo">
+    <div class="section-inner">
+      <span class="section-label">backlog</span>
+      <h2 class="section-title">What's next.</h2>
+      <div class="todo-list">
+        <div class="todo-item">
+          <div class="todo-box"></div>
+          <div>
+            <div class="todo-label">Separate initialization task</div>
+            <div class="todo-note">Decouple setup() from application tasks — proper RTOS discipline.</div>
+          </div>
+        </div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
+          <div>
+            <div class="todo-label">BLE events triggered by IMU threshold</div>
+            <div class="todo-note">Only transmit when movement exceeds threshold. Better battery life, less BLE noise.</div>
+          </div>
+        </div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
+          <div>
+            <div class="todo-label">3D → 2D projection</div>
+            <div class="todo-note">Map IMU 9-DoF data onto a 2D mouse movement plane. Gravity compensation, drift correction.</div>
+          </div>
+        </div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
+          <div>
+            <div class="todo-label">Mouse HID via BLE</div>
+            <div class="todo-note">Transition from gamepad HID to mouse HID profile. The core user-facing feature.</div>
+          </div>
+        </div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
+          <div>
+            <div class="todo-label">FlexPCB layout in EasyEDA Pro</div>
+            <div class="todo-note">Move from reference schematics to original board layout. Hard constraint: must fit inner ring.</div>
+          </div>
+        </div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
+          <div>
+            <div class="todo-label">Decide on battery + charging approach</div>
+            <div class="todo-note">LiFePO baseline confirmed. Thermoelectric and inductive options still being evaluated.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-sig">
+      <strong>mausring</strong> — open hardware, designed in commits. <em>Farewell, V.</em>
+    </div>
+    <div class="footer-links">
+      <a href="https://github.com/vstkl/mausring" target="_blank">github</a>
+      <a href="https://github.com/vstkl/mausring/blob/master/datasheets/icm20948.pdf" target="_blank">ICM20948 datasheet</a>
+      <a href="https://pro.easyeda.com/editor" target="_blank">EasyEDA Pro</a>
+    </div>
+  </footer>
+
+  <script>
+    gsap.registerPlugin(ScrollTrigger);
+
+    /* ── Custom cursor ── */
+    const dot  = document.getElementById('cursor-dot');
+    const ring = document.getElementById('cursor-ring');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+    (function loop() {
+      gsap.set(dot,  { x: mx, y: my });
+      rx += (mx - rx) * 0.13;
+      ry += (my - ry) * 0.13;
+      gsap.set(ring, { x: rx, y: ry });
+      requestAnimationFrame(loop);
+    })();
+    document.querySelectorAll('a, button, .chip-card, .sw-item, .todo-item, .power-card').forEach(el => {
+      el.addEventListener('mouseenter', () => gsap.to(ring, { scale: 2, opacity: 0.15, duration: 0.3 }));
+      el.addEventListener('mouseleave', () => gsap.to(ring, { scale: 1, opacity: 0.35, duration: 0.3 }));
+    });
+
+    /* ── Nav scrolled state ── */
+    ScrollTrigger.create({
+      start: 'top -60',
+      onEnter:     () => document.getElementById('main-nav').classList.add('scrolled'),
+      onLeaveBack: () => document.getElementById('main-nav').classList.remove('scrolled'),
+    });
+
+    /* ── Hero entrance ── */
+    // Set initial hidden state only via JS — avoids FO

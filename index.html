@@ -5,36 +5,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>mausring — a mouse ring</title>
 
-  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Bebas+Neue&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet" />
 
-  <!-- GSAP + ScrollTrigger via CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 
   <style>
-    /* ─── TOKENS ─────────────────────────────────────────────── */
+    /* ─── BASE TOKENS (dark by default — original aesthetic) ── */
     :root {
-      --bg:        #0a0b0d;
-      --bg2:       #0f1115;
-      --bg3:       #13161c;
-      --panel:     #161a22;
-      --border:    #232830;
-      --amber:     #e8a030;
-      --amber-dim: #7a521a;
-      --green:     #3de87a;
-      --green-dim: #1a4030;
-      --text:      #c8cdd6;
-      --text-dim:  #5a6070;
-      --white:     #eef0f4;
-      --mono:      'Share Tech Mono', monospace;
-      --display:   'Bebas Neue', sans-serif;
-      --body:      'IBM Plex Sans', sans-serif;
+      --bg:             #0a0b0d;
+      --bg2:            #0f1115;
+      --panel:          #161a22;
+      --border:         #232830;
+      --border-strong:  #e8a030;
+      --text:           #c8cdd6;
+      --mid:            #a0a8b8;
+      --dim:            #5a6070;
+      --accent:         #e8a030;
+      --accent-dim:     #7a521a;
+      --green:          #3de87a;
+      --green-dim:      #1a4030;
+      --white:          #eef0f4;
+      --pcb-line:       rgba(232,160,48,0.045);
+      --pcb-dot:        rgba(232,160,48,0.10);
+      --nav-scrolled:   rgba(10,11,13,0.92);
+      --marquee-text:   #232830;
+      --marquee-b:      #7a521a;
+      --scroll-line:    linear-gradient(to bottom, #e8a030, transparent);
+      --display: 'Bebas Neue', sans-serif;
+      --mono:    'Share Tech Mono', monospace;
+      --body:    'IBM Plex Sans', sans-serif;
     }
 
-    /* ─── RESET ──────────────────────────────────────────────── */
+    /* ─── LIGHT MODE override ──────────────────────────────── */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg:             #faf8f4;
+        --bg2:            #f2ede4;
+        --panel:          #e8e0d0;
+        --border:         #c8bca8;
+        --border-strong:  #8a5a00;
+        --text:           #2a1f0a;
+        --mid:            #5a4020;
+        --dim:            #8a7050;
+        --accent:         #b06800;
+        --accent-dim:     #d4a060;
+        --green:          #1a6030;
+        --green-dim:      #4a9060;
+        --white:          #1a1000;
+        --pcb-line:       rgba(160,100,0,0.08);
+        --pcb-dot:        rgba(160,100,0,0.15);
+        --nav-scrolled:   rgba(250,248,244,0.94);
+        --marquee-text:   #c8bca8;
+        --marquee-b:      #b06800;
+        --scroll-line:    linear-gradient(to bottom, #b06800, transparent);
+      }
+    }
+
+    /* ─── RESET ────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
 
@@ -42,593 +72,298 @@
       background: var(--bg);
       color: var(--text);
       font-family: var(--body);
+      font-size: 17px;
       font-weight: 300;
-      line-height: 1.7;
+      line-height: 1.75;
       overflow-x: hidden;
-      cursor: crosshair;
+      transition: background 0.3s, color 0.3s;
     }
 
-    /* ─── CUSTOM CURSOR ──────────────────────────────────────── */
-    #cursor-dot {
-      width: 6px; height: 6px;
-      background: var(--amber);
-      border-radius: 50%;
-      position: fixed;
-      pointer-events: none;
-      z-index: 9999;
-      transform: translate(-50%, -50%);
-      transition: background 0.2s;
-    }
-    #cursor-ring {
-      width: 28px; height: 28px;
-      border: 1px solid var(--amber);
-      border-radius: 50%;
-      position: fixed;
-      pointer-events: none;
-      z-index: 9998;
-      transform: translate(-50%, -50%);
-      transition: width 0.3s, height 0.3s, border-color 0.2s;
-      opacity: 0.6;
-    }
-    body:hover #cursor-ring { opacity: 1; }
-
-    /* ─── PCB GRID BACKGROUND ────────────────────────────────── */
+    /* ─── PCB GRID BACKGROUND ──────────────────────────────── */
     .pcb-grid {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background-image:
-        linear-gradient(rgba(232,160,48,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(232,160,48,0.04) 1px, transparent 1px);
-      background-size: 40px 40px;
-      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+        linear-gradient(var(--pcb-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--pcb-line) 1px, transparent 1px),
+        radial-gradient(circle, var(--pcb-dot) 1px, transparent 1px);
+      background-size: 40px 40px, 40px 40px, 40px 40px;
+      background-position: 0 0, 0 0, 20px 20px;
+      mask-image: radial-gradient(ellipse 85% 85% at 50% 40%, black 30%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 85% 85% at 50% 40%, black 30%, transparent 100%);
     }
 
-    /* ─── NAV ────────────────────────────────────────────────── */
+    /* ─── NAV ──────────────────────────────────────────────── */
     nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1.2rem 3rem;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.1rem 3rem;
       border-bottom: 1px solid transparent;
-      transition: border-color 0.4s, background 0.4s;
+      transition: border-color 0.3s, background 0.3s;
     }
     nav.scrolled {
-      background: rgba(10,11,13,0.92);
+      background: var(--nav-scrolled);
       border-color: var(--border);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     .nav-logo {
-      font-family: var(--display);
-      font-size: 1.6rem;
-      letter-spacing: 0.08em;
-      color: var(--amber);
+      font-family: var(--display); font-style: normal;
+      font-size: 1.4rem; letter-spacing: 0.06em; color: var(--accent);
     }
-    .nav-logo span { color: var(--text-dim); font-size: 0.9rem; font-family: var(--mono); }
-    .nav-links { display: flex; gap: 2.5rem; list-style: none; }
+    .nav-logo sub {
+      font-style: normal; font-size: 0.6rem; color: var(--dim);
+      font-family: var(--mono); letter-spacing: 0.08em;
+      vertical-align: baseline; margin-left: 0.4rem;
+    }
+    .nav-links { display: flex; gap: 2rem; list-style: none; }
     .nav-links a {
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      text-decoration: none;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      transition: color 0.2s;
+      font-family: var(--mono); font-size: 0.7rem; color: var(--dim);
+      text-decoration: none; letter-spacing: 0.1em; text-transform: uppercase;
+      transition: color 0.15s;
     }
-    .nav-links a:hover { color: var(--amber); }
+    .nav-links a:hover { color: var(--text); }
 
-    /* ─── SECTIONS BASE ──────────────────────────────────────── */
-    section {
-      position: relative;
-      z-index: 1;
-    }
+    /* ─── SECTIONS ─────────────────────────────────────────── */
+    section { position: relative; z-index: 1; }
 
-    /* ─── HERO ───────────────────────────────────────────────── */
+    /* ─── HERO ─────────────────────────────────────────────── */
     #hero {
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-      padding: 6rem 2rem 4rem;
+      min-height: 100vh; display: grid; place-items: center;
+      text-align: center; padding: 7rem 2rem 5rem; overflow: hidden;
     }
+    .hero-ring {
+      position: absolute; border-radius: 50%;
+      border: 1px solid var(--text);
+      pointer-events: none; left: 50%; top: 50%;
+      transform: translate(-50%,-50%);
+    }
+    .hero-ring-1 { width: 360px; height: 360px; opacity: 0.10; }
+    .hero-ring-2 { width: 560px; height: 560px; opacity: 0.06; }
+    .hero-ring-3 { width: 800px; height: 800px; opacity: 0.03; }
 
-    .hero-bg-ring {
-      position: absolute;
-      border-radius: 50%;
-      border: 1px solid;
-      pointer-events: none;
-    }
-    .ring-1 {
-      width: 420px; height: 420px;
-      border-color: rgba(232,160,48,0.12);
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-    }
-    .ring-2 {
-      width: 620px; height: 620px;
-      border-color: rgba(232,160,48,0.07);
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-    }
-    .ring-3 {
-      width: 860px; height: 860px;
-      border-color: rgba(232,160,48,0.04);
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-    }
-    .ring-glow {
-      position: absolute;
-      width: 300px; height: 300px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(232,160,48,0.12) 0%, transparent 70%);
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
+    .hero-content { position: relative; z-index: 2; }
 
-    .hero-content {
-      text-align: center;
-      position: relative;
-      z-index: 2;
-    }
-    .hero-label {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      color: var(--amber);
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      margin-bottom: 1.5rem;
-      opacity: 0;
+    .hero-eyebrow {
+      font-family: var(--mono); font-size: 0.67rem; letter-spacing: 0.28em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 1.8rem;
     }
     .hero-title {
-      font-family: var(--display);
-      font-size: clamp(5rem, 14vw, 12rem);
-      line-height: 0.9;
-      color: var(--white);
-      letter-spacing: -0.01em;
-      opacity: 0;
+      font-family: var(--display); font-style: normal;
+      font-size: clamp(4.5rem, 13vw, 11rem);
+      line-height: 0.92; color: var(--white); letter-spacing: 0.01em;
     }
-    .hero-title .accent { color: var(--amber); }
-    .hero-sub {
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      color: var(--text-dim);
-      margin-top: 1.5rem;
-      letter-spacing: 0.08em;
-      max-width: 44ch;
-      margin-left: auto; margin-right: auto;
-      opacity: 0;
+    .hero-title .accent { color: var(--accent); }
+    .hero-desc {
+      font-family: var(--mono); font-style: normal;
+      font-size: 0.85rem; color: var(--mid); letter-spacing: 0.06em;
+      max-width: 52ch; margin: 1.6rem auto 0;
     }
     .hero-cta {
-      margin-top: 3rem;
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-      opacity: 0;
+      margin-top: 2.8rem; display: flex; gap: 1rem;
+      justify-content: center; flex-wrap: wrap;
     }
+
+    /* GSAP will handle opacity:0 initial state via JS — no CSS opacity:0 here */
+
     .btn {
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      padding: 0.8rem 2rem;
-      border: 1px solid;
-      text-decoration: none;
-      transition: background 0.2s, color 0.2s, border-color 0.2s;
-      cursor: pointer;
+      font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.14em;
+      text-transform: uppercase; padding: 0.75rem 1.8rem;
+      border: 1px solid; text-decoration: none;
+      transition: background 0.18s, color 0.18s, border-color 0.18s;
+      cursor: pointer; display: inline-block;
     }
-    .btn-primary {
-      border-color: var(--amber);
-      color: var(--amber);
-      background: transparent;
-    }
-    .btn-primary:hover {
-      background: var(--amber);
-      color: var(--bg);
-    }
-    .btn-ghost {
-      border-color: var(--border);
-      color: var(--text-dim);
-      background: transparent;
-    }
-    .btn-ghost:hover {
-      border-color: var(--text-dim);
-      color: var(--text);
-    }
+    .btn-solid   { border-color: var(--accent); background: var(--accent); color: var(--bg); }
+    .btn-solid:hover  { background: transparent; color: var(--accent); }
+    .btn-outline { border-color: var(--border); color: var(--dim); background: transparent; }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
     .scroll-hint {
-      position: absolute;
-      bottom: 2.5rem;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.5rem;
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--text-dim);
-      letter-spacing: 0.2em;
-      opacity: 0;
+      position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.22em;
+      color: var(--dim); text-transform: uppercase;
     }
     .scroll-line {
-      width: 1px;
-      height: 40px;
-      background: linear-gradient(to bottom, var(--amber), transparent);
-      animation: scrollline 1.8s ease-in-out infinite;
+      width: 1px; height: 36px;
+      background: var(--scroll-line);
+      animation: linefall 1.8s ease-in-out infinite;
     }
-    @keyframes scrollline {
-      0%, 100% { opacity: 0.2; transform: scaleY(1); }
-      50%       { opacity: 1;   transform: scaleY(1.2); }
+    @keyframes linefall {
+      0%,100% { opacity: 0.2; transform: scaleY(0.8); }
+      50%      { opacity: 0.7; transform: scaleY(1); }
     }
 
-    /* ─── SECTION LAYOUT ─────────────────────────────────────── */
-    .section-inner {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 2rem;
-    }
+    /* ─── SHARED LAYOUT ────────────────────────────────────── */
+    .section-inner { max-width: 1080px; margin: 0 auto; padding: 0 2.5rem; }
+
     .section-label {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      color: var(--amber);
-      margin-bottom: 1rem;
+      font-family: var(--mono); font-size: 0.63rem; letter-spacing: 0.28em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 0.9rem;
+      display: block;
     }
-    .section-label::before {
-      content: '// ';
-      color: var(--text-dim);
-    }
-    .section-title {
-      font-family: var(--display);
-      font-size: clamp(3rem, 6vw, 5.5rem);
-      line-height: 0.95;
-      color: var(--white);
-      letter-spacing: 0.01em;
+    .section-label::before { content: '// '; color: var(--dim); }
+
+    h2.section-title {
+      font-family: var(--display); font-style: normal;
+      font-size: clamp(2.8rem, 5.5vw, 5rem);
+      line-height: 0.96; color: var(--white); letter-spacing: 0.02em; margin-bottom: 3.5rem;
     }
 
-    /* ─── MANIFESTO ──────────────────────────────────────────── */
-    #manifesto {
-      padding: 10rem 0;
-      overflow: hidden;
-    }
+    /* ─── MANIFESTO ────────────────────────────────────────── */
+    #manifesto { padding: 9rem 0; border-top: 1px solid var(--border); }
     .manifesto-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6rem;
-      align-items: center;
-      margin-top: 4rem;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 5rem; align-items: center;
     }
-    @media (max-width: 700px) {
-      .manifesto-grid { grid-template-columns: 1fr; gap: 3rem; }
-    }
-    .manifesto-text p {
-      font-size: 1.05rem;
-      color: var(--text);
-      margin-bottom: 1.2rem;
-      font-weight: 300;
-    }
-    .manifesto-text p em {
-      color: var(--amber);
-      font-style: italic;
-    }
-    .manifesto-visual {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+    @media (max-width: 720px) { .manifesto-grid { grid-template-columns: 1fr; gap: 3rem; } }
+    .manifesto-text p { font-size: 1.05rem; color: var(--text); font-weight: 300; margin-bottom: 1.1rem; }
+    .manifesto-text em { font-style: italic; color: var(--accent); }
+    .ring-diagram svg { width: 100%; max-width: 280px; display: block; margin: 0 auto; overflow: visible; }
 
-    /* SVG ring diagram */
-    .ring-diagram {
-      width: 280px;
-      height: 280px;
-      position: relative;
-    }
-    .ring-diagram svg {
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-    }
-
-    /* ─── HARDWARE ───────────────────────────────────────────── */
-    #hardware {
-      padding: 8rem 0;
-      background: var(--bg2);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-    .chips-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.5px;
-      margin-top: 4rem;
-      border: 1.5px solid var(--border);
-    }
-    .chip-card {
-      background: var(--panel);
-      padding: 2rem 1.8rem;
-      position: relative;
-      overflow: hidden;
-      transition: background 0.3s;
-    }
-    .chip-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: var(--amber);
-      transform: scaleX(0);
-      transform-origin: left;
-      transition: transform 0.4s ease;
-    }
-    .chip-card:hover::before { transform: scaleX(1); }
-    .chip-card:hover { background: #1c2130; }
-    .chip-id {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--amber-dim);
-      letter-spacing: 0.2em;
-      margin-bottom: 0.6rem;
-    }
-    .chip-name {
-      font-family: var(--mono);
-      font-size: 1rem;
-      color: var(--amber);
-      margin-bottom: 0.8rem;
-    }
-    .chip-desc {
-      font-size: 0.88rem;
-      color: var(--text-dim);
-      line-height: 1.6;
-    }
-    .chip-tag {
-      display: inline-block;
-      margin-top: 1rem;
-      font-family: var(--mono);
-      font-size: 0.6rem;
-      color: var(--green);
-      border: 1px solid var(--green-dim);
-      padding: 0.2rem 0.6rem;
-      letter-spacing: 0.1em;
-    }
-
-    /* ─── PARALLAX MARQUEE ───────────────────────────────────── */
-    .marquee-section {
-      padding: 3rem 0;
-      overflow: hidden;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
+    /* ─── MARQUEE ───────────────────────────────────────────── */
+    .marquee-wrap {
+      border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      padding: 1.4rem 0; overflow: hidden;
     }
     .marquee-track {
-      display: flex;
-      gap: 4rem;
-      white-space: nowrap;
-      font-family: var(--display);
-      font-size: 3.5rem;
-      color: var(--border);
-      animation: marquee 22s linear infinite;
-      will-change: transform;
+      display: flex; gap: 3rem; white-space: nowrap;
+      font-family: var(--display); font-style: normal; font-size: 3rem;
+      color: var(--marquee-text);
+      animation: marquee 26s linear infinite; will-change: transform;
     }
-    .marquee-track span { color: var(--amber-dim); }
-    @keyframes marquee {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
+    .marquee-track b { color: var(--marquee-b); font-weight: 400; }
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    /* ─── HARDWARE ──────────────────────────────────────────── */
+    #hardware { padding: 9rem 0; border-top: 1px solid var(--border); background: var(--bg2); }
+    .chips-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      border: 1px solid var(--border-strong);
+    }
+    .chip-card {
+      padding: 2rem 1.8rem; background: var(--bg);
+      border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+      position: relative; overflow: hidden; transition: background 0.2s;
+    }
+    .chip-card:hover { background: var(--panel); }
+    .chip-card::after {
+      content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+      height: 2px; background: var(--accent);
+      transform: scaleX(0); transform-origin: left; transition: transform 0.35s ease;
+    }
+    .chip-card:hover::after { transform: scaleX(1); }
+    .chip-num {
+      font-family: var(--mono); font-size: 0.6rem; color: var(--accent-dim);
+      letter-spacing: 0.18em; margin-bottom: 0.5rem;
+    }
+    .chip-name {
+      font-family: var(--mono); font-size: 0.88rem; font-weight: 700;
+      color: var(--accent); margin-bottom: 0.7rem;
+    }
+    .chip-desc { font-size: 0.87rem; color: var(--mid); line-height: 1.6; }
+    .chip-tag {
+      display: inline-block; margin-top: 1.1rem;
+      font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.12em;
+      border: 1px solid var(--text); padding: 0.18rem 0.55rem; color: var(--text);
     }
 
-    /* ─── SOFTWARE ───────────────────────────────────────────── */
-    #software {
-      padding: 10rem 0;
-    }
+    /* ─── SOFTWARE ──────────────────────────────────────────── */
+    #software { padding: 9rem 0; border-top: 1px solid var(--border); }
     .sw-layout {
-      display: grid;
-      grid-template-columns: 1fr 1.4fr;
-      gap: 6rem;
-      margin-top: 4rem;
-      align-items: start;
+      display: grid; grid-template-columns: 1fr 1.3fr;
+      gap: 4rem; align-items: start;
     }
-    @media (max-width: 700px) {
-      .sw-layout { grid-template-columns: 1fr; gap: 3rem; }
-    }
-    .sw-stack { display: flex; flex-direction: column; gap: 1.5px; }
+    @media (max-width: 720px) { .sw-layout { grid-template-columns: 1fr; gap: 2.5rem; } }
+
+    .sw-stack { display: flex; flex-direction: column; }
     .sw-item {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      padding: 1.4rem 1.6rem;
-      display: flex;
-      align-items: center;
-      gap: 1.2rem;
-      transition: border-color 0.2s, background 0.2s;
+      display: flex; align-items: flex-start; gap: 1rem;
+      padding: 1.2rem 0; border-bottom: 1px solid var(--border);
+      transition: padding-left 0.2s;
     }
-    .sw-item:hover {
-      border-color: var(--amber-dim);
-      background: #1a1e28;
-    }
-    .sw-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--amber);
-      flex-shrink: 0;
-    }
-    .sw-item-name {
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      color: var(--amber);
-    }
-    .sw-item-desc {
-      font-size: 0.8rem;
-      color: var(--text-dim);
-      margin-top: 0.2rem;
-    }
+    .sw-item:first-child { border-top: 1px solid var(--border); }
+    .sw-item:hover { padding-left: 0.5rem; }
+    .sw-dash { font-family: var(--mono); font-size: 0.8rem; color: var(--dim); flex-shrink: 0; padding-top: 0.1rem; }
+    .sw-name { font-family: var(--mono); font-size: 0.82rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; }
+    .sw-desc { font-size: 0.83rem; color: var(--dim); }
 
-    .terminal {
-      background: #0d1117;
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      overflow: hidden;
-    }
+    /* terminal */
+    .terminal { border: 1px solid var(--border-strong); overflow: hidden; }
     .terminal-bar {
-      background: var(--bg3);
-      border-bottom: 1px solid var(--border);
-      padding: 0.6rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      background: var(--panel); border-bottom: 1px solid var(--border);
+      padding: 0.55rem 1rem; display: flex; align-items: center; gap: 0.45rem;
     }
-    .t-dot { width: 10px; height: 10px; border-radius: 50%; }
-    .t-dot-r { background: #ff5f56; }
-    .t-dot-y { background: #ffbd2e; }
-    .t-dot-g { background: #27c93f; }
-    .terminal-title {
-      font-family: var(--mono);
-      font-size: 0.65rem;
-      color: var(--text-dim);
-      margin-left: 0.5rem;
-      letter-spacing: 0.1em;
-    }
+    .t-btn { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--border); background: var(--panel); }
+    .terminal-label { font-family: var(--mono); font-size: 0.62rem; color: var(--dim); margin-left: 0.4rem; letter-spacing: 0.08em; }
     .terminal-body {
-      padding: 1.4rem 1.6rem;
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      line-height: 1.9;
-      color: #8b9db0;
+      padding: 1.4rem 1.6rem; font-family: var(--mono); font-size: 0.78rem;
+      line-height: 2; color: var(--mid); background: var(--bg);
     }
-    .t-green { color: var(--green); }
-    .t-amber { color: var(--amber); }
-    .t-dim   { color: var(--text-dim); }
-    .t-white { color: var(--white); }
+    .t-ok    { color: var(--text); font-weight: 700; }
+    .t-warn  { color: var(--mid); }
+    .t-muted { color: var(--dim); }
     .t-cursor {
-      display: inline-block;
-      width: 7px; height: 1.1em;
-      background: var(--amber);
+      display: inline-block; width: 6px; height: 0.95em;
+      background: var(--text); vertical-align: text-bottom; margin-left: 1px;
       animation: blink 1.1s step-end infinite;
-      vertical-align: text-bottom;
-      margin-left: 2px;
     }
-    @keyframes blink {
-      0%, 100% { opacity: 1; }
-      50%       { opacity: 0; }
-    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    /* ─── POWER / TBD ────────────────────────────────────────── */
-    #power {
-      padding: 8rem 0;
-      background: var(--bg2);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      overflow: hidden;
+    /* ─── POWER ─────────────────────────────────────────────── */
+    #power { padding: 9rem 0; border-top: 1px solid var(--border); background: var(--bg2); }
+    .power-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; }
+    .power-card { border: 1px solid var(--border); padding: 1.8rem 1.6rem; background: var(--bg); }
+    .power-card.highlight { border-color: var(--text); }
+    .power-status {
+      font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.2em;
+      color: var(--dim); text-transform: uppercase; margin-bottom: 0.7rem;
     }
-    .power-ideas {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.5rem;
-      margin-top: 4rem;
-    }
-    .idea-card {
-      border: 1px solid var(--border);
-      padding: 2rem 1.6rem;
-      position: relative;
-    }
-    .idea-status {
-      font-family: var(--mono);
-      font-size: 0.6rem;
-      letter-spacing: 0.2em;
-      color: var(--text-dim);
-      margin-bottom: 0.8rem;
-    }
-    .idea-title {
-      font-family: var(--display);
-      font-size: 1.6rem;
-      color: var(--white);
-      line-height: 1.1;
-      margin-bottom: 0.8rem;
-    }
-    .idea-desc {
-      font-size: 0.83rem;
-      color: var(--text-dim);
-      line-height: 1.6;
-    }
-    .idea-card.tbd { border-color: var(--amber-dim); }
-    .idea-card.tbd .idea-status { color: var(--amber); }
+    .power-card.highlight .power-status { color: var(--text); }
+    .power-title { font-family: var(--serif); font-style: italic; font-size: 1.35rem; color: var(--text); line-height: 1.2; margin-bottom: 0.8rem; }
+    .power-desc { font-size: 0.84rem; color: var(--mid); line-height: 1.6; }
 
-    /* ─── TODO ───────────────────────────────────────────────── */
-    #todo {
-      padding: 8rem 0;
-    }
-    .todo-list {
-      margin-top: 3rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-    }
+    /* ─── TODO ──────────────────────────────────────────────── */
+    #todo { padding: 9rem 0; border-top: 1px solid var(--border); }
     .todo-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 1.2rem;
-      padding: 1.2rem 1.6rem;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      color: var(--text);
-      transition: border-color 0.2s;
+      display: flex; gap: 1.2rem; align-items: flex-start;
+      padding: 1.3rem 0; border-bottom: 1px solid var(--border);
     }
-    .todo-item:hover { border-color: var(--amber-dim); }
-    .todo-check {
-      width: 16px; height: 16px;
-      border: 1px solid var(--amber-dim);
-      flex-shrink: 0;
-      margin-top: 1px;
-      display: flex; align-items: center; justify-content: center;
-    }
+    .todo-item:first-child { border-top: 1px solid var(--border); }
+    .todo-box { width: 14px; height: 14px; border: 1px solid var(--dim); flex-shrink: 0; margin-top: 4px; }
+    .todo-label { font-family: var(--serif); font-size: 1rem; color: var(--text); margin-bottom: 0.2rem; }
+    .todo-note { font-size: 0.83rem; color: var(--dim); }
 
-    /* ─── FOOTER ─────────────────────────────────────────────── */
+    /* ─── FOOTER ────────────────────────────────────────────── */
     footer {
-      border-top: 1px solid var(--border);
-      padding: 3rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1.5rem;
+      border-top: 1px solid var(--text); padding: 2.5rem 3rem;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 1rem; position: relative; z-index: 1;
     }
-    .footer-sig {
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      color: var(--text-dim);
-    }
-    .footer-sig span { color: var(--amber); }
-    .footer-links { display: flex; gap: 2rem; }
+    .footer-sig { font-family: var(--serif); font-style: italic; font-size: 0.9rem; color: var(--dim); }
+    .footer-sig strong { font-style: normal; color: var(--text); font-weight: 400; }
+    .footer-links { display: flex; gap: 1.8rem; }
     .footer-links a {
-      font-family: var(--mono);
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      text-decoration: none;
-      letter-spacing: 0.1em;
-      transition: color 0.2s;
+      font-family: var(--mono); font-size: 0.68rem; color: var(--dim);
+      text-decoration: none; letter-spacing: 0.08em; transition: color 0.15s;
     }
-    .footer-links a:hover { color: var(--amber); }
+    .footer-links a:hover { color: var(--text); }
 
-    /* ─── PARALLAX LAYERS ────────────────────────────────────── */
-    .parallax-layer { will-change: transform; }
+    /* SVG diagram theming via CSS */
+    .diagram-inner-fill  { fill: var(--bg2); }
+    .diagram-hole-fill   { fill: var(--bg); }
+    .diagram-ring-stroke { stroke: var(--text); }
+    .diagram-label-muted { fill: var(--dim); }
+
+    .parallax-el { will-change: transform; }
   </style>
 </head>
 <body>
 
-  <!-- cursor -->
-  <div id="cursor-dot"></div>
-  <div id="cursor-ring"></div>
-
-  <!-- PCB grid -->
   <div class="pcb-grid"></div>
 
-  <!-- ─── NAV ──────────────────────────────────────────────── -->
+  <!-- NAV -->
   <nav id="main-nav">
-    <div class="nav-logo">mausring <span>// v0.1-wip</span></div>
+    <div class="nav-logo">mausring <sub>v0.1-wip</sub></div>
     <ul class="nav-links">
       <li><a href="#manifesto">why</a></li>
       <li><a href="#hardware">hardware</a></li>
@@ -638,357 +373,297 @@
     </ul>
   </nav>
 
-  <!-- ─── HERO ─────────────────────────────────────────────── -->
+  <!-- HERO -->
   <section id="hero">
-    <div class="hero-bg-ring ring-3 parallax-layer" data-speed="-0.08"></div>
-    <div class="hero-bg-ring ring-2 parallax-layer" data-speed="-0.14"></div>
-    <div class="hero-bg-ring ring-1 parallax-layer" data-speed="-0.20"></div>
-    <div class="ring-glow parallax-layer" data-speed="-0.05"></div>
+    <div class="hero-ring hero-ring-3 parallax-el" data-speed="-0.07"></div>
+    <div class="hero-ring hero-ring-2 parallax-el" data-speed="-0.13"></div>
+    <div class="hero-ring hero-ring-1 parallax-el" data-speed="-0.20"></div>
 
     <div class="hero-content">
-      <div class="hero-label" id="hero-label">open hardware project</div>
-      <h1 class="hero-title" id="hero-title">
-        MAUS<span class="accent">RING</span>
-      </h1>
-      <p class="hero-sub" id="hero-sub">
-        A mouse. In a ring. Powered by laziness,<br>
-        RISC-V, and an accelerometer.
-      </p>
-      <div class="hero-cta" id="hero-cta">
-        <a href="#manifesto" class="btn btn-primary">read the manifesto</a>
-        <a href="https://github.com/vstkl/mausring" target="_blank" class="btn btn-ghost">view on github</a>
+      <p class="hero-eyebrow" id="h-eye">open hardware project</p>
+      <h1 class="hero-title" id="h-title">Maus<span class="upright">ring</span></h1>
+      <p class="hero-desc" id="h-desc">A mouse you wear on your finger.<br>Born from laziness, built with RISC-V.</p>
+      <div class="hero-cta" id="h-cta">
+        <a href="#manifesto" class="btn btn-solid">read the story</a>
+        <a href="https://github.com/vstkl/mausring" target="_blank" class="btn btn-outline">github ↗</a>
       </div>
     </div>
 
-    <div class="scroll-hint" id="scroll-hint">
+    <div class="scroll-hint" id="h-scroll">
       <span>scroll</span>
       <div class="scroll-line"></div>
     </div>
   </section>
 
-  <!-- ─── MANIFESTO ─────────────────────────────────────────── -->
+  <!-- MANIFESTO -->
   <section id="manifesto">
     <div class="section-inner">
-      <div class="section-label reveal">origin</div>
-      <h2 class="section-title reveal">Born from<br>coffee &amp; laziness.</h2>
+      <span class="section-label">origin</span>
+      <h2 class="section-title">Born from<br>coffee &amp; laziness.</h2>
       <div class="manifesto-grid">
-        <div class="manifesto-text reveal">
-          <p>
-            I got tired of putting my hand back on the touchpad every time I needed to turn a page —
-            <em>while my hands were busy doing something more important, like holding coffee.</em>
-          </p>
-          <p>
-            So instead of accepting that reality, I decided to build a mouse you wear on your finger.
-            A ring with an outer rotary band for scrolling, an IMU for pointer movement,
-            and enough stubbornness to actually make it happen.
-          </p>
-          <p>
-            This is a FOSS hardware project. If it ever reaches production, profit isn't the point.
-            The point is that a thing like this <em>should exist</em> and currently doesn't.
-          </p>
+        <div class="manifesto-text">
+          <p>I got tired of putting my hand back on the touchpad every time I needed to turn a page — <em>while my hands were doing something more important, like holding coffee.</em></p>
+          <p>So instead of accepting that reality, I decided to build a mouse you wear on your finger. A ring with an outer rotary band for scrolling, an IMU for pointer movement, and enough stubbornness to make it real.</p>
+          <p>This is FOSS hardware. If it ever reaches production, profit isn't the point. The point is that <em>a thing like this should exist</em> and currently doesn't.</p>
         </div>
-        <div class="manifesto-visual reveal">
-          <!-- Animated SVG ring cross-section diagram -->
-          <div class="ring-diagram">
-            <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
-              <!-- outer ring -->
-              <circle cx="140" cy="140" r="120" fill="none" stroke="#e8a030" stroke-width="22" opacity="0.18" />
-              <!-- outer ring label arc -->
-              <circle cx="140" cy="140" r="120" fill="none" stroke="#e8a030" stroke-width="1.5"
-                stroke-dasharray="6 4" opacity="0.5" id="outer-dash" />
-              <!-- inner ring -->
-              <circle cx="140" cy="140" r="88" fill="#13161c" stroke="#232830" stroke-width="1.5" />
-              <!-- finger hole -->
-              <circle cx="140" cy="140" r="54" fill="#0a0b0d" stroke="#1a1e28" stroke-width="1" />
-
-              <!-- chip indicators -->
-              <rect x="115" y="108" width="50" height="14" rx="1" fill="#e8a030" opacity="0.8" />
-              <text x="140" y="119" text-anchor="middle" fill="#0a0b0d" font-family="Share Tech Mono,monospace" font-size="7">ESP32-C3</text>
-
-              <rect x="112" y="128" width="24" height="11" rx="1" fill="#3de87a" opacity="0.7" />
-              <text x="124" y="137" text-anchor="middle" fill="#0a0b0d" font-family="Share Tech Mono,monospace" font-size="6">IMU</text>
-
-              <rect x="142" y="128" width="26" height="11" rx="1" fill="#3de87a" opacity="0.5" />
-              <text x="155" y="137" text-anchor="middle" fill="#0a0b0d" font-family="Share Tech Mono,monospace" font-size="6">HR</text>
-
-              <rect x="118" y="145" width="44" height="12" rx="1" fill="#5a6070" opacity="0.6" />
-              <text x="140" y="154" text-anchor="middle" fill="#eef0f4" font-family="Share Tech Mono,monospace" font-size="6">BATTERY TBD</text>
-
-              <!-- labels -->
-              <text x="140" y="38" text-anchor="middle" fill="#e8a030" font-family="Share Tech Mono,monospace" font-size="8" opacity="0.7">OUTER — ROTARY SCROLL</text>
-              <text x="140" y="242" text-anchor="middle" fill="#5a6070" font-family="Share Tech Mono,monospace" font-size="8">INNER — MCU + IMU</text>
-
-              <!-- Hall sensor dot -->
-              <circle cx="140" cy="22" r="4" fill="#e8a030" opacity="0.9" />
-              <text x="152" y="26" fill="#e8a030" font-family="Share Tech Mono,monospace" font-size="7">HALL</text>
-
-              <!-- spin arrow on outer ring -->
-              <path d="M 55 100 A 95 95 0 0 1 225 100" fill="none" stroke="#e8a030" stroke-width="1" stroke-dasharray="4 3" opacity="0.4" marker-end="url(#arr)" />
-              <defs>
-                <marker id="arr" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-                  <path d="M0,0 L6,3 L0,6 Z" fill="#e8a030" opacity="0.6" />
-                </marker>
-              </defs>
-            </svg>
-          </div>
+        <div class="ring-diagram">
+          <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+            <!-- outer rotary ring glow area -->
+            <circle cx="140" cy="140" r="122" fill="none" stroke="currentColor" stroke-width="20" opacity="0.06"/>
+            <!-- outer dashed ring (spins via GSAP) -->
+            <circle cx="140" cy="140" r="122" fill="none" stroke="currentColor" stroke-width="1"
+              stroke-dasharray="5 4" opacity="0.3" id="outer-dash"/>
+            <!-- inner ring body -->
+            <circle cx="140" cy="140" r="90" class="diagram-inner-fill" stroke="currentColor" stroke-width="1" opacity="0.8"/>
+            <!-- finger hole -->
+            <circle cx="140" cy="140" r="55" class="diagram-hole-fill" stroke="currentColor" stroke-width="0.5" opacity="0.3"/>
+            <!-- chip: ESP32 -->
+            <rect x="112" y="106" width="56" height="14" rx="1" fill="currentColor" opacity="0.85"/>
+            <text x="140" y="117.5" text-anchor="middle" fill="var(--bg)" font-family="Courier Prime, monospace" font-size="7" font-weight="bold">ESP32-C3</text>
+            <!-- chip: IMU -->
+            <rect x="110" y="126" width="26" height="11" rx="1" fill="currentColor" opacity="0.55"/>
+            <text x="123" y="135" text-anchor="middle" fill="var(--bg)" font-family="Courier Prime, monospace" font-size="6.5">IMU</text>
+            <!-- chip: HR -->
+            <rect x="142" y="126" width="28" height="11" rx="1" fill="currentColor" opacity="0.38"/>
+            <text x="156" y="135" text-anchor="middle" fill="var(--bg)" font-family="Courier Prime, monospace" font-size="6.5">HR</text>
+            <!-- battery -->
+            <rect x="116" y="143" width="48" height="11" rx="1" fill="currentColor" opacity="0.18"/>
+            <text x="140" y="152" text-anchor="middle" fill="currentColor" opacity="0.5" font-family="Courier Prime, monospace" font-size="6">BATTERY · TBD</text>
+            <!-- Hall sensor -->
+            <circle cx="140" cy="20" r="4" fill="currentColor" opacity="0.7"/>
+            <line x1="140" y1="24" x2="140" y2="50" stroke="currentColor" stroke-width="0.5" stroke-dasharray="2 2" opacity="0.3"/>
+            <!-- labels -->
+            <text x="140" y="238" text-anchor="middle" class="diagram-label-muted" font-family="Courier Prime, monospace" font-size="7.5">inner — mcu + imu</text>
+            <text x="140" y="11" text-anchor="middle" class="diagram-label-muted" font-family="Courier Prime, monospace" font-size="7">hall sensor</text>
+            <!-- spin arrow -->
+            <path d="M 52 105 A 98 98 0 0 1 228 105" fill="none" stroke="currentColor" stroke-width="0.8"
+              stroke-dasharray="3 4" opacity="0.2" marker-end="url(#arr)"/>
+            <defs>
+              <marker id="arr" markerWidth="5" markerHeight="5" refX="2.5" refY="2.5" orient="auto">
+                <path d="M0,0 L5,2.5 L0,5 Z" fill="currentColor" opacity="0.3"/>
+              </marker>
+            </defs>
+          </svg>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── MARQUEE ───────────────────────────────────────────── -->
-  <div class="marquee-section">
+  <!-- MARQUEE -->
+  <div class="marquee-wrap">
     <div class="marquee-track">
-      <span>ESP32-C3</span> · ICM20948 · FREERTOS · EASYEDA · OPENSCAD · RISC-V · BLE HID · LIFEPO · MAX30102 · FLEXPCB ·
-      <span>ESP32-C3</span> · ICM20948 · FREERTOS · EASYEDA · OPENSCAD · RISC-V · BLE HID · LIFEPO · MAX30102 · FLEXPCB ·
+      <b>ESP32-C3</b> · ICM20948 · FreeRTOS · EasyEDA · OpenSCAD · <b>RISC-V</b> · BLE HID · LiFePO · MAX30102 · FlexPCB · JupyterSCAD · SolidPython ·&nbsp;
+      <b>ESP32-C3</b> · ICM20948 · FreeRTOS · EasyEDA · OpenSCAD · <b>RISC-V</b> · BLE HID · LiFePO · MAX30102 · FlexPCB · JupyterSCAD · SolidPython ·&nbsp;
     </div>
   </div>
 
-  <!-- ─── HARDWARE ──────────────────────────────────────────── -->
+  <!-- HARDWARE -->
   <section id="hardware">
     <div class="section-inner">
-      <div class="section-label reveal">silicon</div>
-      <h2 class="section-title reveal">The hardware<br>inside the ring.</h2>
-
+      <span class="section-label">silicon</span>
+      <h2 class="section-title">The hardware<br>inside the ring.</h2>
       <div class="chips-grid">
-        <div class="chip-card reveal">
-          <div class="chip-id">01 // BRAIN</div>
+        <div class="chip-card">
+          <div class="chip-num">01 · brain</div>
           <div class="chip-name">ESP32-C3FH4 / ESP8684-H2</div>
-          <div class="chip-desc">
-            RISC-V core chosen as much for ideology as for size. Fits the critically small inner ring,
-            handles BLE HID, runs FreeRTOS. Possibly the smallest ESP32 you'll ever hold.
-          </div>
-          <div class="chip-tag">RISC-V // BLE</div>
+          <div class="chip-desc">RISC-V core chosen as much for ideology as size. Fits the critically small inner ring, handles BLE HID, runs FreeRTOS. Possibly the smallest ESP32 you'll ever wear.</div>
+          <div class="chip-tag">RISC-V · BLE</div>
         </div>
-        <div class="chip-card reveal">
-          <div class="chip-id">02 // MOTION</div>
+        <div class="chip-card">
+          <div class="chip-num">02 · motion</div>
           <div class="chip-name">ICM-20948</div>
-          <div class="chip-desc">
-            9-DoF IMU — accelerometer, gyroscope, magnetometer in one tiny package.
-            Excellent docs, available dev board for firmware prototyping. Replaced BMA423 + LSM303 combo.
-          </div>
-          <div class="chip-tag">9-DOF // SPI // I2C</div>
+          <div class="chip-desc">9-DoF IMU — accelerometer, gyroscope, magnetometer in one small package. Replaced BMA423 + LSM303 combo. Excellent docs, dev board available for firmware testing.</div>
+          <div class="chip-tag">9-DOF · SPI · I2C</div>
         </div>
-        <div class="chip-card reveal">
-          <div class="chip-id">03 // BIOMETRICS</div>
+        <div class="chip-card">
+          <div class="chip-num">03 · biometrics</div>
           <div class="chip-name">MAX30102</div>
-          <div class="chip-desc">
-            Pulse oximeter &amp; heart-rate sensor. Optional — toggleable by the user for privacy
-            and battery conservation. Because biometric data is yours, not anyone else's.
-          </div>
-          <div class="chip-tag">OPT-IN // HR</div>
+          <div class="chip-desc">Pulse oximeter and heart-rate sensor. Optional — user-toggleable for privacy and battery conservation. Your biometric data belongs to you, not anyone else.</div>
+          <div class="chip-tag">OPT-IN · HR</div>
         </div>
-        <div class="chip-card reveal">
-          <div class="chip-id">04 // SCROLL</div>
+        <div class="chip-card">
+          <div class="chip-num">04 · scroll</div>
           <div class="chip-name">Rotary Outer Ring + Hall Sensor</div>
-          <div class="chip-desc">
-            The outer ring spins mechanically. Hall sensor reads magnetic pulses to detect direction
-            and velocity. Same rotation could theoretically contribute to inductive charging — TBD.
-          </div>
-          <div class="chip-tag">HALL // SCROLL</div>
+          <div class="chip-desc">The outer ring spins mechanically. A Hall sensor reads magnetic pulses to detect direction and velocity. Same rotation may eventually contribute to inductive charging.</div>
+          <div class="chip-tag">HALL · SCROLL</div>
         </div>
-        <div class="chip-card reveal">
-          <div class="chip-id">05 // FORM</div>
+        <div class="chip-card">
+          <div class="chip-num">05 · form</div>
           <div class="chip-name">FlexPCB + OpenSCAD Body</div>
-          <div class="chip-desc">
-            Designed for FlexPCB in EasyEDA Pro. 3D model via Jupyter + SolidPython + JupyterSCAD.
-            RX/TX probes exposed for FOSS hackability. This thing is meant to be tinkered with.
-          </div>
-          <div class="chip-tag">FLEXPCB // FOSS</div>
+          <div class="chip-desc">Designed for FlexPCB in EasyEDA Pro. 3D body via Jupyter + SolidPython + JupyterSCAD. RX/TX probes exposed. Built to be tinkered with.</div>
+          <div class="chip-tag">FLEXPCB · FOSS</div>
         </div>
-        <div class="chip-card reveal">
-          <div class="chip-id">06 // POWER</div>
+        <div class="chip-card">
+          <div class="chip-num">06 · power</div>
           <div class="chip-name">Battery — TBD</div>
-          <div class="chip-desc">
-            Small LiFePO cell (~22mAh, similar to Oura Ring research). Thermoelectric and
-            rotational inductive charging are ideas on the table. Nothing is settled.
-          </div>
-          <div class="chip-tag">TBD // LIFEPO</div>
+          <div class="chip-desc">Small LiFePO cell (~22mAh, informed by Oura Ring research). Thermoelectric and rotational inductive charging are ideas on the table. Nothing is settled yet.</div>
+          <div class="chip-tag">TBD · LIFEPO</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── SOFTWARE ─────────────────────────────────────────── -->
+  <!-- SOFTWARE -->
   <section id="software">
     <div class="section-inner">
-      <div class="section-label reveal">firmware</div>
-      <h2 class="section-title reveal">Software<br>stack.</h2>
-
+      <span class="section-label">firmware</span>
+      <h2 class="section-title">Software stack.</h2>
       <div class="sw-layout">
         <div class="sw-stack">
-          <div class="sw-item reveal">
-            <div class="sw-dot"></div>
+          <div class="sw-item">
+            <span class="sw-dash">—</span>
             <div>
-              <div class="sw-item-name">Arduino IDE + ICM20948_WE</div>
-              <div class="sw-item-desc">Working base. SPI abstraction layer by wollewald. Comfortable enough to iterate fast.</div>
+              <div class="sw-name">Arduino IDE + ICM20948_WE</div>
+              <div class="sw-desc">Working base. SPI abstraction by wollewald. Comfortable enough to iterate fast.</div>
             </div>
           </div>
-          <div class="sw-item reveal">
-            <div class="sw-dot"></div>
+          <div class="sw-item">
+            <span class="sw-dash">—</span>
             <div>
-              <div class="sw-item-name">FreeRTOS tasks</div>
-              <div class="sw-item-desc">Separate tasks for comms, IMU data, status LED. Event-driven, threshold-triggered BLE sends.</div>
+              <div class="sw-name">FreeRTOS tasks</div>
+              <div class="sw-desc">Separate tasks for comms, IMU data, status LED. Event-driven, threshold-triggered BLE sends.</div>
             </div>
           </div>
-          <div class="sw-item reveal">
-            <div class="sw-dot"></div>
+          <div class="sw-item">
+            <span class="sw-dash">—</span>
             <div>
-              <div class="sw-item-name">Gamepad → Mouse HID</div>
-              <div class="sw-item-desc">IMU 3D data projected to 2D plane, routed through BLE HID compatibility layer to mouse events.</div>
+              <div class="sw-name">Gamepad → Mouse HID</div>
+              <div class="sw-desc">IMU 3D data projected to 2D, routed through BLE HID compatibility layer to mouse events.</div>
             </div>
           </div>
-          <div class="sw-item reveal">
-            <div class="sw-dot"></div>
+          <div class="sw-item">
+            <span class="sw-dash">—</span>
             <div>
-              <div class="sw-item-name">JupyterSCAD + SolidPython</div>
-              <div class="sw-item-desc">Parametric 3D ring design. Jupyter notebook as the IDE for mechanical design. Unusual and effective.</div>
+              <div class="sw-name">JupyterSCAD + SolidPython</div>
+              <div class="sw-desc">Parametric 3D ring design in a Jupyter notebook. Unusual. Effective.</div>
             </div>
           </div>
-          <div class="sw-item reveal">
-            <div class="sw-dot"></div>
+          <div class="sw-item">
+            <span class="sw-dash">—</span>
             <div>
-              <div class="sw-item-name">EasyEDA Pro</div>
-              <div class="sw-item-desc">Schematic &amp; PCB layout. M5Stack H2 gateway + CoreS3 used as reference schematics.</div>
+              <div class="sw-name">EasyEDA Pro</div>
+              <div class="sw-desc">Schematic and PCB layout. M5Stack H2 gateway + CoreS3 used as reference schematics.</div>
             </div>
           </div>
         </div>
 
-        <div class="terminal reveal">
+        <div class="terminal">
           <div class="terminal-bar">
-            <div class="t-dot t-dot-r"></div>
-            <div class="t-dot t-dot-y"></div>
-            <div class="t-dot t-dot-g"></div>
-            <div class="terminal-title">mausring // fw_status.log</div>
+            <div class="t-btn"></div><div class="t-btn"></div><div class="t-btn"></div>
+            <span class="terminal-label">fw_status.log</span>
           </div>
           <div class="terminal-body">
-<span class="t-dim">[ BOOT ]</span> FreeRTOS kernel init<br>
-<span class="t-green">  ✓</span> task_imu         <span class="t-dim">// running</span><br>
-<span class="t-green">  ✓</span> task_ble_comms   <span class="t-dim">// running</span><br>
-<span class="t-green">  ✓</span> task_status_led  <span class="t-dim">// blinking</span><br>
-<span class="t-amber">  !</span> task_init        <span class="t-dim">// TODO: separate</span><br>
+<span class="t-muted">[ BOOT ]</span> FreeRTOS kernel init<br>
+<span class="t-ok">  ✓</span> task_imu         <span class="t-muted">// running</span><br>
+<span class="t-ok">  ✓</span> task_ble_comms   <span class="t-muted">// running</span><br>
+<span class="t-ok">  ✓</span> task_status_led  <span class="t-muted">// blinking</span><br>
+<span class="t-warn">  !</span> task_init        <span class="t-muted">// TODO: separate</span><br>
 <br>
-<span class="t-dim">[ IMU ]</span> ICM20948 via SPI<br>
-<span class="t-green">  ✓</span> accel_raw        <span class="t-dim">// ±2g</span><br>
-<span class="t-green">  ✓</span> gyro_raw         <span class="t-dim">// ±250dps</span><br>
-<span class="t-amber">  →</span> 3D→2D projection <span class="t-dim">// in progress</span><br>
+<span class="t-muted">[ IMU ]</span> ICM20948 via SPI<br>
+<span class="t-ok">  ✓</span> accel_raw        <span class="t-muted">// ±2g</span><br>
+<span class="t-ok">  ✓</span> gyro_raw         <span class="t-muted">// ±250dps</span><br>
+<span class="t-warn">  →</span> 3D→2D projection <span class="t-muted">// in progress</span><br>
 <br>
-<span class="t-dim">[ BLE ]</span> HID gamepad mode<br>
-<span class="t-green">  ✓</span> gamepad x/y      <span class="t-dim">// mapped</span><br>
-<span class="t-amber">  →</span> mouse HID        <span class="t-dim">// next step</span><br>
-<span class="t-amber">  →</span> threshold events <span class="t-dim">// TODO</span><br>
+<span class="t-muted">[ BLE ]</span> HID profile<br>
+<span class="t-ok">  ✓</span> gamepad x/y      <span class="t-muted">// mapped</span><br>
+<span class="t-warn">  →</span> mouse HID        <span class="t-muted">// next step</span><br>
+<span class="t-warn">  →</span> threshold events <span class="t-muted">// TODO</span><br>
 <br>
-<span class="t-dim">[ SYS ]</span> RX/TX probes exposed<br>
-<span class="t-green">  ✓</span> hackable by design<br>
-<br>
-<span class="t-amber">_</span><span class="t-cursor"></span>
+<span class="t-muted">[ SYS ]</span> RX/TX probes exposed<br>
+<span class="t-ok">  ✓</span> hackable by design<br>
+<br>_<span class="t-cursor"></span>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── POWER IDEAS ───────────────────────────────────────── -->
+  <!-- POWER -->
   <section id="power">
     <div class="section-inner">
-      <div class="section-label reveal">energy</div>
-      <h2 class="section-title reveal">Power:<br>still figuring it out.</h2>
-
-      <div class="power-ideas">
-        <div class="idea-card reveal">
-          <div class="idea-status">STATUS: BASELINE</div>
-          <div class="idea-title">LiFePO Cell ~22mAh</div>
-          <div class="idea-desc">
-            The boring answer. A tiny lithium iron phosphate cell similar to what Oura Ring uses.
-            Safe, predictable, fits. The floor we build on.
-          </div>
+      <span class="section-label">energy</span>
+      <h2 class="section-title">Power:<br>still figuring it out.</h2>
+      <div class="power-grid">
+        <div class="power-card">
+          <div class="power-status">Status — baseline</div>
+          <div class="power-title">LiFePO Cell ~22mAh</div>
+          <div class="power-desc">The boring answer. A tiny lithium iron phosphate cell similar to what Oura Ring uses. Safe, predictable, fits. The floor we build on.</div>
         </div>
-        <div class="idea-card tbd reveal">
-          <div class="idea-status">STATUS: TBD</div>
-          <div class="idea-title">Thermoelectric Charging</div>
-          <div class="idea-desc">
-            Body heat differential → Peltier → trickle charge. Seductive idea.
-            Efficiency probably terrible. Worth exploring anyway.
-          </div>
+        <div class="power-card highlight">
+          <div class="power-status">Status — TBD</div>
+          <div class="power-title">Thermoelectric Charging</div>
+          <div class="power-desc">Body heat differential → Peltier → trickle charge. Seductive idea. Efficiency probably terrible. Worth exploring anyway.</div>
         </div>
-        <div class="idea-card tbd reveal">
-          <div class="idea-status">STATUS: TBD</div>
-          <div class="idea-title">Rotational Induction</div>
-          <div class="idea-desc">
-            The outer ring rotation drives the Hall sensor. The same magnetic pulses could
-            theoretically power inductive charge cycles. Dual-purpose elegance.
-          </div>
+        <div class="power-card highlight">
+          <div class="power-status">Status — TBD</div>
+          <div class="power-title">Rotational Induction</div>
+          <div class="power-desc">The outer ring rotation drives the Hall sensor. Same magnetic pulses could power inductive charge cycles. Dual-purpose elegance — feasibility TBD.</div>
         </div>
-        <div class="idea-card reveal">
-          <div class="idea-status">STATUS: PLANNED</div>
-          <div class="idea-title">Biometric Opt-In</div>
-          <div class="idea-desc">
-            MAX30102 can be toggled off. Less current draw when off, your HR data stays yours when on.
-            Two-button design philosophy.
-          </div>
+        <div class="power-card">
+          <div class="power-status">Status — planned</div>
+          <div class="power-title">Biometric Opt-In</div>
+          <div class="power-desc">MAX30102 can be toggled off. Less current draw when disabled, your HR data stays yours when enabled.</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── TODO ─────────────────────────────────────────────── -->
+  <!-- TODO -->
   <section id="todo">
     <div class="section-inner">
-      <div class="section-label reveal">backlog</div>
-      <h2 class="section-title reveal">What's<br>next.</h2>
-
+      <span class="section-label">backlog</span>
+      <h2 class="section-title">What's next.</h2>
       <div class="todo-list">
-        <div class="todo-item reveal">
-          <div class="todo-check"></div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
           <div>
-            <div style="color: var(--amber); margin-bottom:0.2rem">Separate initialization task</div>
-            <div style="font-size:0.75rem; color:var(--text-dim)">Decouple setup() logic from application tasks — proper RTOS discipline.</div>
+            <div class="todo-label">Separate initialization task</div>
+            <div class="todo-note">Decouple setup() from application tasks — proper RTOS discipline.</div>
           </div>
         </div>
-        <div class="todo-item reveal">
-          <div class="todo-check"></div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
           <div>
-            <div style="color: var(--amber); margin-bottom:0.2rem">BLE events triggered by IMU threshold</div>
-            <div style="font-size:0.75rem; color:var(--text-dim)">Don't flood BLE with data — only transmit when movement exceeds threshold. Better battery life.</div>
+            <div class="todo-label">BLE events triggered by IMU threshold</div>
+            <div class="todo-note">Only transmit when movement exceeds threshold. Better battery life, less BLE noise.</div>
           </div>
         </div>
-        <div class="todo-item reveal">
-          <div class="todo-check"></div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
           <div>
-            <div style="color: var(--amber); margin-bottom:0.2rem">3D → 2D projection</div>
-            <div style="font-size:0.75rem; color:var(--text-dim)">Map IMU 9-DoF data onto a 2D mouse movement plane. Gravity compensation, drift correction.</div>
+            <div class="todo-label">3D → 2D projection</div>
+            <div class="todo-note">Map IMU 9-DoF data onto a 2D mouse movement plane. Gravity compensation, drift correction.</div>
           </div>
         </div>
-        <div class="todo-item reveal">
-          <div class="todo-check"></div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
           <div>
-            <div style="color: var(--amber); margin-bottom:0.2rem">Mouse HID via BLE</div>
-            <div style="font-size:0.75rem; color:var(--text-dim)">Transition from gamepad HID to mouse HID profile. The core user-facing feature.</div>
+            <div class="todo-label">Mouse HID via BLE</div>
+            <div class="todo-note">Transition from gamepad HID to mouse HID profile. The core user-facing feature.</div>
           </div>
         </div>
-        <div class="todo-item reveal">
-          <div class="todo-check"></div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
           <div>
-            <div style="color: var(--amber); margin-bottom:0.2rem">FlexPCB design in EasyEDA Pro</div>
-            <div style="font-size:0.75rem; color:var(--text-dim)">Move from reference schematics to original board layout. Constraints: must fit inner ring.</div>
+            <div class="todo-label">FlexPCB layout in EasyEDA Pro</div>
+            <div class="todo-note">Move from reference schematics to original board layout. Hard constraint: must fit inner ring.</div>
           </div>
         </div>
-        <div class="todo-item reveal">
-          <div class="todo-check"></div>
+        <div class="todo-item">
+          <div class="todo-box"></div>
           <div>
-            <div style="color: var(--amber); margin-bottom:0.2rem">Decide on battery + charging approach</div>
-            <div style="font-size:0.75rem; color:var(--text-dim)">LiFePO baseline confirmed. Thermoelectric and inductive options still being evaluated.</div>
+            <div class="todo-label">Decide on battery + charging approach</div>
+            <div class="todo-note">LiFePO baseline confirmed. Thermoelectric and inductive options still being evaluated.</div>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ─── FOOTER ────────────────────────────────────────────── -->
+  <!-- FOOTER -->
   <footer>
     <div class="footer-sig">
-      mausring // <span>open hardware</span> // designed in Brno, documented in commits<br>
-      <span style="color:var(--text-dim); font-size:0.65rem;">farewell, V.</span>
+      <strong>mausring</strong> — open hardware, designed in commits. <em>Farewell, V.</em>
     </div>
     <div class="footer-links">
       <a href="https://github.com/vstkl/mausring" target="_blank">github</a>
@@ -998,179 +673,109 @@
   </footer>
 
   <script>
-    /* ─── GSAP + ScrollTrigger ─────────────────────────────── */
     gsap.registerPlugin(ScrollTrigger);
-
-    /* ── Custom cursor ── */
-    const dot  = document.getElementById('cursor-dot');
-    const ring = document.getElementById('cursor-ring');
-    let mx = 0, my = 0, rx = 0, ry = 0;
-
-    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-
-    (function cursorLoop() {
-      // dot follows immediately
-      gsap.set(dot,  { x: mx, y: my });
-      // ring lags slightly
-      rx += (mx - rx) * 0.14;
-      ry += (my - ry) * 0.14;
-      gsap.set(ring, { x: rx, y: ry });
-      requestAnimationFrame(cursorLoop);
-    })();
-
-    document.querySelectorAll('a, button, .chip-card, .sw-item, .todo-item').forEach(el => {
-      el.addEventListener('mouseenter', () => {
-        gsap.to(ring, { scale: 1.8, borderColor: '#e8a030', duration: 0.3 });
-      });
-      el.addEventListener('mouseleave', () => {
-        gsap.to(ring, { scale: 1, borderColor: '#e8a030', duration: 0.3 });
-      });
-    });
 
     /* ── Nav scrolled state ── */
     ScrollTrigger.create({
-      start: 'top -80',
-      onEnter:      () => document.getElementById('main-nav').classList.add('scrolled'),
-      onLeaveBack:  () => document.getElementById('main-nav').classList.remove('scrolled'),
+      start: 'top -60',
+      onEnter:     () => document.getElementById('main-nav').classList.add('scrolled'),
+      onLeaveBack: () => document.getElementById('main-nav').classList.remove('scrolled'),
     });
 
-    /* ── Hero entrance animation ── */
-    const heroTl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-    heroTl
-      .to('#hero-label',   { opacity: 1, y: 0,  duration: 0.8, delay: 0.3 }, 0)
-      .from('#hero-title', { opacity: 0, y: 60, duration: 1.1 }, 0.4)
-      .to('#hero-title',   { opacity: 1, duration: 0.01 }, 0.4)
-      .to('#hero-sub',     { opacity: 1, y: 0,  duration: 0.8 }, 0.85)
-      .to('#hero-cta',     { opacity: 1, y: 0,  duration: 0.7 }, 1.1)
-      .to('#scroll-hint',  { opacity: 1, duration: 0.6 }, 1.4);
+    /* ── Hero entrance ── */
+    // Set initial hidden state via JS to avoid flash-of-unstyled content
+    gsap.set(['#h-eye', '#h-desc', '#h-cta', '#h-scroll'], { opacity: 0, y: 18 });
+    gsap.set('#h-title', { opacity: 0, y: 50 });
+    gsap.timeline({ defaults: { ease: 'power3.out' } })
+      .to('#h-eye',    { opacity: 1, y: 0, duration: 0.7 }, 0.4)
+      .to('#h-title',  { opacity: 1, y: 0, duration: 1.1 }, 0.65)
+      .to('#h-desc',   { opacity: 1, y: 0, duration: 0.8 }, 1.0)
+      .to('#h-cta',    { opacity: 1, y: 0, duration: 0.7 }, 1.25)
+      .to('#h-scroll', { opacity: 1, y: 0, duration: 0.6 }, 1.55);
 
-    // set initial y for label + sub + cta
-    gsap.set(['#hero-label', '#hero-sub', '#hero-cta'], { y: 20 });
-
-    /* ── Parallax rings in hero ── */
-    document.querySelectorAll('.parallax-layer').forEach(el => {
+    /* ── Hero ring parallax ── */
+    document.querySelectorAll('.parallax-el').forEach(el => {
       const speed = parseFloat(el.dataset.speed || 0);
       gsap.to(el, {
         y: () => window.innerHeight * speed * -1,
         ease: 'none',
-        scrollTrigger: {
-          trigger: '#hero',
-          start: 'top top',
-          end: 'bottom top',
-          scrub: true,
-        }
+        scrollTrigger: { trigger: '#hero', start: 'top top', end: 'bottom top', scrub: true }
       });
     });
 
-    /* ── Rotating outer ring SVG dash ── */
+    /* ── SVG outer ring rotation ── */
     gsap.to('#outer-dash', {
-      rotation: 360,
-      transformOrigin: '140px 140px',
-      duration: 18,
-      repeat: -1,
-      ease: 'none',
+      rotation: 360, transformOrigin: '140px 140px',
+      duration: 22, repeat: -1, ease: 'none'
     });
 
-    /* ── Scroll reveal for .reveal elements ── */
-    gsap.utils.toArray('.reveal').forEach((el, i) => {
-      gsap.from(el, {
-        opacity: 0,
-        y: 40,
-        duration: 0.85,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: el,
-          start: 'top 88%',
-          toggleActions: 'play none none none',
-        }
-      });
-    });
-
-    /* ── Parallax for section headers ── */
-    gsap.utils.toArray('.section-title').forEach(el => {
+    /* ── Section title subtle parallax drift ── */
+    gsap.utils.toArray('h2.section-title').forEach(el => {
       gsap.to(el, {
-        y: -40,
-        ease: 'none',
+        y: -35, ease: 'none',
         scrollTrigger: {
           trigger: el.closest('section'),
-          start: 'top bottom',
-          end: 'bottom top',
-          scrub: 1.2,
+          start: 'top bottom', end: 'bottom top', scrub: 1.4
         }
       });
     });
 
-    /* ── Hardware cards stagger ── */
+    /* ── Generic scroll reveal (labels, titles, text blocks)
+         toggleActions: 'play none none none' — elements stay visible once revealed,
+         never reverse/disappear when scrolling back up ── */
+    gsap.utils.toArray('.section-label, .manifesto-text, .ring-diagram, .terminal').forEach(el => {
+      gsap.fromTo(el,
+        { opacity: 0, y: 28 },
+        { opacity: 1, y: 0, duration: 0.85, ease: 'power2.out',
+          scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
+        }
+      );
+    });
+
+    /* ── Chip cards — staggered fade up ── */
     gsap.utils.toArray('.chip-card').forEach((card, i) => {
-      gsap.from(card, {
-        opacity: 0,
-        y: 50,
-        duration: 0.7,
-        delay: i * 0.08,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: card,
-          start: 'top 90%',
-          toggleActions: 'play none none none',
+      gsap.fromTo(card,
+        { opacity: 0, y: 40 },
+        { opacity: 1, y: 0, duration: 0.65, delay: i * 0.07, ease: 'power2.out',
+          scrollTrigger: { trigger: card, start: 'top 92%', toggleActions: 'play none none none' }
         }
-      });
+      );
     });
 
-    /* ── Power cards stagger ── */
-    gsap.utils.toArray('.idea-card').forEach((card, i) => {
-      gsap.from(card, {
-        opacity: 0,
-        x: i % 2 === 0 ? -30 : 30,
-        duration: 0.75,
-        delay: i * 0.1,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: card,
-          start: 'top 90%',
-          toggleActions: 'play none none none',
+    /* ── SW items — staggered slide from left ── */
+    gsap.utils.toArray('.sw-item').forEach((item, i) => {
+      gsap.fromTo(item,
+        { opacity: 0, x: -20 },
+        { opacity: 1, x: 0, duration: 0.55, delay: i * 0.08, ease: 'power2.out',
+          scrollTrigger: { trigger: item, start: 'top 91%', toggleActions: 'play none none none' }
         }
-      });
+      );
     });
 
-    /* ── Marquee speed boost on scroll ── */
-    let marqueeSpeed = 22;
-    ScrollTrigger.create({
-      trigger: '.marquee-section',
-      start: 'top bottom',
-      end: 'bottom top',
-      onUpdate: self => {
-        const v = self.getVelocity();
-        const newDur = Math.max(6, 22 - Math.abs(v) * 0.02);
-        document.querySelector('.marquee-track').style.animationDuration = newDur + 's';
-      }
+    /* ── Power cards — alternate slide in from sides ── */
+    gsap.utils.toArray('.power-card').forEach((card, i) => {
+      gsap.fromTo(card,
+        { opacity: 0, x: i % 2 === 0 ? -24 : 24 },
+        { opacity: 1, x: 0, duration: 0.7, delay: i * 0.09, ease: 'power2.out',
+          scrollTrigger: { trigger: card, start: 'top 91%', toggleActions: 'play none none none' }
+        }
+      );
     });
 
-    /* ── TODO items stagger ── */
+    /* ── Todo items — staggered slide from left ── */
     gsap.utils.toArray('.todo-item').forEach((item, i) => {
-      gsap.from(item, {
-        opacity: 0,
-        x: -20,
-        duration: 0.6,
-        delay: i * 0.1,
-        ease: 'power2.out',
-        scrollTrigger: {
-          trigger: item,
-          start: 'top 90%',
-          toggleActions: 'play none none none',
+      gsap.fromTo(item,
+        { opacity: 0, x: -20 },
+        { opacity: 1, x: 0, duration: 0.55, delay: i * 0.08, ease: 'power2.out',
+          scrollTrigger: { trigger: item, start: 'top 91%', toggleActions: 'play none none none' }
         }
-      });
+      );
     });
 
-    /* ── PCB grid subtle parallax ── */
+    /* ── PCB grid slow parallax drift ── */
     gsap.to('.pcb-grid', {
-      backgroundPositionY: '80px',
-      ease: 'none',
-      scrollTrigger: {
-        trigger: 'body',
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: true,
-      }
+      backgroundPositionY: '80px', ease: 'none',
+      scrollTrigger: { trigger: 'body', start: 'top top', end: 'bottom bottom', scrub: true }
     });
   </script>
 </body>
